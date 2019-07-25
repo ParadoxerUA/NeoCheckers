@@ -8,11 +8,10 @@ class Desk():
     def __init__(self):
         self.board = [[BlankSpace(row, coll) for coll in range(8)] for row in range(8)]
         for row in range(8):
-
             for coll in range(8):
                 if (row+coll)%2 == 0 and row not in [3,4]:
                     side = colors[0] if row<3 else colors[1]
-                    self.board[row][coll] = Checker(row, coll, side=side)
+                    self.board[coll][row] = Checker(coll, row, side=side)
 
 
         self.checkersCount = {}
@@ -28,9 +27,9 @@ class Desk():
     def possibleMoves(self, side, posFrom, beatOnlyMode=False):
         moves = {}
         mul = 1 if side == colors[0] else -1
-        for direction in [(x*mul, y*mul) for x,y in [(1,1), (1,-1)]]:
+        for direction in [(x*mul, y*mul) for x,y in [(1,1), (-1,1)]]:
             moves[direction] = self.findMovesInDirection(side, posFrom, direction, beatOnlyMode)
-        for direction in [(x*mul, y*mul) for x,y in [(-1,-1), (-1,1)]]:
+        for direction in [(x*mul, y*mul) for x,y in [(-1,-1), (1,-1)]]:
             moves[direction] = self.findMovesInDirection(side, posFrom, direction, beatOnlyMode=True)
         return moves
 
@@ -40,11 +39,14 @@ class Desk():
         enemy_count = 0
         enemy_x = None
         enemy_y = None
-        n = checker.area_of_affect + 1
-        for el in range(1, n):
-
-            x = checker.x + direction[0]
-            y = checker.y + direction[1]
+        x = checker.x
+        y = checker.y
+        n = checker.area_of_affect
+        i = 0
+        while i < n:
+            i += 1
+            x += direction[0]
+            y += direction[1]
             if 0 <= x and x < 8 and 0 <= y and y < 8:
                 if not isinstance(self.board[x][y], Checker):
                     moves.append((x, y))
@@ -53,7 +55,7 @@ class Desk():
                         enemy_count += 1
                         enemy_x = x
                         enemy_y = y
-                        n = checker.area_of_affect + 2
+                        n = checker.area_of_affect + 1
                     if enemy_count > 1:
                         break
         if beatOnlyMode and len(moves)>0:
@@ -67,14 +69,14 @@ class Desk():
 
 
 
-    def makeMove(self, side, posFrom, posTo, beatOnlyMode):     #not the best solution, mb change later
+    def makeMove(self, side, posFrom, posTo, beatOnlyMode=False):     #not the best solution, mb change later
         departure = self.turnToCode(posFrom)
         destination = self.turnToCode(posTo)
-        direction = zip((destination.x - departure.x)/abs(destination.x - departure.y),
+        direction = ((destination.x - departure.x)/abs(destination.x - departure.y),
                         (destination.y - departure.y)/abs(destination.y - departure.y))
         if isinstance(departure, Checker) and departure.color == side:
             moveData = self.possibleMoves(side, posFrom, beatOnlyMode=beatOnlyMode)
-            if not (departure.x, departure.y) in moveData[direction]['moves']:
+            if (destination.x, destination.y) not in moveData[direction]['moves']:
                 return False
 
         tempX, tempY = departure.x, departure.y
@@ -85,7 +87,7 @@ class Desk():
         en_x, en_y = moveData[direction]['enemies']
         if en_x:
             self.board[en_x][en_y] = BlankSpace(en_x, en_y)
-            self.checkersCount[abs(colors.index(side)-1)] -= 1
+            self.checkersCount[side] -= 1
         return True
 
 
@@ -123,3 +125,13 @@ if __name__ == '__main__':
         print('Bug #1')
     a = bord.possibleMoves(colors[0], 'C3')
     print(a)
+    bord.makeMove(colors[0], 'C3', 'D4')      #checker not moving
+    print(bord.turnToCode('D4'))
+    print(bord.turnToCode('C3'))
+    print(bord.possibleMoves(colors[0], 'D4'))
+    bord.makeMove(colors[0], 'D4', 'E5')
+    print(bord.possibleMoves(colors[0], 'E5'))
+    bord.board[2][6] = BlankSpace(2, 6)
+    print(bord.possibleMoves(colors[0], 'E5'))
+    print(bord.makeMove(colors[0], 'E5', 'C7'))
+    print(bord.board[2][6])
