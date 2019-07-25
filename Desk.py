@@ -16,8 +16,9 @@ class Desk():
 
         dc = lambda x,y: Checker(x, y) if (x + y) % 2 == 0 and y not in [3, 4] else BlankSpace(x, y)
         self.board = [[dc(row, coll) for row in range(8)] for coll in range(8)]
-        self.whites = list()
-        self.blacks = list()
+        self.checkersCount = {}
+        self.checkersCount[colors[0]] = 12
+        self.checkersCount[colors[1]] = 12
         for row in range(8):
             for coll in range(row%2, 8 , 2):
                  self.whites.append(self.board[row][coll])
@@ -68,33 +69,38 @@ class Desk():
 
 
 
-    def checkTurn(self, side, posFrom, posTo, beatOnlyMode):
+    def makeMove(self, side, posFrom, posTo, beatOnlyMode):     #not the best solution, mb change later
         departure = self.turnToCode(posFrom)
         destination = self.turnToCode(posTo)
         direction = zip((destination.x - departure.x)/abs(destination.x - departure.y),
                         (destination.y - departure.y)/abs(destination.y - departure.y))
         if isinstance(departure, Checker) and departure.color == side:
-            if (departure.x, departure.y) in self.possibleMoves(side, posFrom, beatOnlyMode=beatOnlyMode)[direction]['moves']:
-                    return True
-        return False
+            moveData = self.possibleMoves(side, posFrom, beatOnlyMode=beatOnlyMode)
+            if not (departure.x, departure.y) in moveData[direction]['moves']:
+                return False
 
-    def rearrange(self, posFrom, posTo):
-        previousPos = self.turnToCode(posFrom)
-        nextPos = self.turnToCode(posTo)
-        tempX, tempY = previousPos.x, previousPos.y
-        previousPos.x = nextPos.x
-        previousPos.y = nextPos.y
-        self.board[nextPos.x][nextPos.y] = previousPos
+        tempX, tempY = departure.x, departure.y
+        departure.x = destination.x
+        departure.y = destination.y
+        self.board[destination.x][destination.y] = departure
         self.board[tempX][tempY] = BlankSpace(tempX, tempY)
+        en_x, en_y = moveData[direction]['enemies']
+        if en_x:
+            self.board[en_x][en_y] = BlankSpace(en_x, en_y)
+            self.checkersCount[abs(colors.index(side)-1)] -= 1
+        return True
+
+
+
 
     def turn(self, side):
         while True:
             posFrom, posTo =  input("Input your turn").split('-')
-            if self.checkTurn(side, posFrom, posTo):
+
+            if self.makeMove(side, posFrom, posTo):
                 break
             else:
                 print(r'You\'ve entered wrong move, try again')
-        self.rearrange(posFrom, posTo)
         temp = self.possibleMoves(side, posFrom, beatOnlyMode=True)
         while True:
             for direaction in [(1, 1), (1, -1), (-1, 1), (-1, -1)]:
@@ -102,11 +108,10 @@ class Desk():
                     posFrom = posTo
                     while True:
                         posTo = input("Beat enemy checker")
-                        if self.checkTurn(side, posFrom, posTo, beatOnlyMode=True):
+                        if self.makeMove(side, posFrom, posTo, beatOnlyMode=True):
                             break
                         else:
                             print(r'You\'ve entered wrong move, try again')
-                    self.rearrenge(posFrom, posTo)
                     break
             else:
                 break
